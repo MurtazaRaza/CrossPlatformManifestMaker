@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 
 namespace CrossPlatformManifestMaker
 {
@@ -24,12 +23,12 @@ namespace CrossPlatformManifestMaker
         {
             if (args.Length < 4)
             {
-                Console.WriteLine("Need at least 4 arguments");
+                Console.WriteLine("ERROR: Need at least 4 arguments");
                 return;
             }
             
             string previousReleaseBuildManifestPath = args[0]; // TODO check validity here only and throw error if incorrect or inaccessible
-            if (!File.Exists(previousReleaseBuildManifestPath))
+            if (!FileUtils.Exists(previousReleaseBuildManifestPath))
             {
                 Console.WriteLine("Previous Manifest Not Found, comparisions will be skipped");
                 IsFirstManifest = true;
@@ -50,18 +49,29 @@ namespace CrossPlatformManifestMaker
             {
                 pakNamesToUpdate.Add(args[i]);
             }
+            
+            BuildManifest buildManifest = new BuildManifest();
 
             if (IsFirstManifest)
             {
-                
+                var pakFiles= FileUtils.GetAllFilesInFolderWith(paksPath, "*.pak", "pakchunk0");
+                buildManifest.ReconcileWithCurrentPaks(pakFiles, platform, quality);
+
+                FileUtils.WriteStringToFile(buildManifest.SerializeObject(platform, quality),
+                    $"{paksPath}/BuildManifest-{platform}.txt");
             }
             else
             {
                 string[] allLinesInManifest = FileUtils.GetAllLinesInFile(previousReleaseBuildManifestPath);
-                BuildManifestDeSerialized buildManifestDeSerialized = new BuildManifestDeSerialized();
-                buildManifestDeSerialized.DeserializeBuildManifestFileLines(allLinesInManifest);
+                buildManifest.DeserializeBuildManifestFileLines(allLinesInManifest);
+                
+                var pakFiles= FileUtils.GetAllFilesInFolderWith(paksPath, "*.pak", "pakchunk0");
+                buildManifest.ReconcileWithCurrentPaks(pakFiles, platform, quality);
 
-                string ReSerialized = buildManifestDeSerialized.Serialize(platform, quality);
+                buildManifest.UpdateVersionsOfPaks(pakNamesToUpdate);
+
+                FileUtils.WriteStringToFile(buildManifest.SerializeObject(platform, quality),
+                    $"{paksPath}/BuildManifest-{platform}.txt");
             }
         }
 
@@ -70,7 +80,7 @@ namespace CrossPlatformManifestMaker
             if (!platform.Equals("Windows") && !platform.Equals("Android") && !platform.Equals("IOS") &&
                 !platform.Equals("TvOS"))
             {
-                Console.WriteLine("Unsupported platform entered; only supports Windows, Android, IOS, and TvOS strings");
+                Console.WriteLine("ERROR: Unsupported platform entered; only supports Windows, Android, IOS, and TvOS strings");
                 return false;
             }
 
@@ -81,7 +91,7 @@ namespace CrossPlatformManifestMaker
         {
             if (!quality.Equals("high") && !quality.Equals("medium") && !quality.Equals("low"))
             {
-                Console.WriteLine("Unsupported quality entered; only supports high, medium, and low");
+                Console.WriteLine("ERROR: Unsupported quality entered; only supports high, medium, and low");
                 return false;
             }
 
