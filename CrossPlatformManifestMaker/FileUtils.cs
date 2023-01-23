@@ -16,19 +16,16 @@ namespace CrossPlatformManifestMaker
 
         public static void WriteStringToFile(string stringToWrite, string filePathWithName)
         {
-            if (!Exists(filePathWithName))
-                File.Create(filePathWithName);
+            // Check if file already exists. If yes, delete it.     
+            if (Exists(filePathWithName))
+            {
+                File.Delete(filePathWithName);
+            }
 
-            try
+            using (StreamWriter sw = File.CreateText(filePathWithName))
             {
-                File.WriteAllText(filePathWithName, stringToWrite);
+                sw.Write(stringToWrite);
             }
-            catch (Exception e)
-            {
-                Console.WriteLine($"Cant write to text file? {e}");
-                throw;
-            }
-            
         }
         
         public static List<FileInfo> GetAllFilesInFolderWith(string path, string stringToInclude, string notIncluding = "-1")

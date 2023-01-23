@@ -13,7 +13,7 @@ namespace CrossPlatformManifestMaker
         private string BuildId;
         private List<ManifestPakDetail> ManifestPakDetails = new List<ManifestPakDetail>();
 
-        private static readonly string DEFAULT_VERSION_STRING = "ver1";
+        private static readonly string DEFAULT_VERSION_STRING = "ver01";
         private readonly List<string> ESCAPE_CHARACTERS_LIST = new List<string>()
         {
             "-",
@@ -180,13 +180,41 @@ namespace CrossPlatformManifestMaker
         {
             foreach (var pakNameToUpdate in pakNamesToUpdate)
             {
-                ManifestPakDetail manifestPakDetail = ManifestPakDetails.FirstOrDefault(x => x.PakChunkName.Equals(pakNameToUpdate));
+                ManifestPakDetail manifestPakDetail =
+                    ManifestPakDetails.FirstOrDefault(x => x.PakChunkName.Equals(pakNameToUpdate));
 
-                manifestPakDetail?.IncrementPakVersionNumber();
+                if (manifestPakDetail == null)
+                    continue;
+
+                manifestPakDetail.IncrementPakVersionNumber();
+
+                if (!manifestPakDetail.PakChunkName.Contains("_s") &&
+                    !manifestPakDetail.PakChunkName.Contains("optional"))
+                    continue;
+
+
+                // TODO get all parent paks. Parent pak will have the same name as the pak but no _s or optional?
+                // also check whether that is the pak that was updated so recursive call is not made
+                List<ManifestPakDetail> paksWithSameId =
+                    ManifestPakDetails.Where(x => x.ChunkId == manifestPakDetail.ChunkId).ToList();
+
+                for (var index = paksWithSameId.Count - 1; index >= 0; index--)
+                {
+                    var pak = paksWithSameId[index];
+                    // This already will be updated so no need to do it here
+                    if (pakNamesToUpdate.Contains(pak.PakChunkName))
+                        continue;
+
+                    if (!pak.PakChunkName.Contains("_s") && !pak.PakChunkName.Contains("optional"))
+                    {
+                        pak.IncrementPakVersionNumber();
+                    }
+                }
+
             }
         }
 
-
+        // TODO add log to a file with all the changes when changing versions
         private class ManifestPakDetail
         {
             public string PakChunkName;
@@ -207,7 +235,7 @@ namespace CrossPlatformManifestMaker
                 currentVersionIntegerPart++;
                 string versionStringPart = GetStringWithoutNumber(PakVersionNumber);
 
-                PakVersionNumber = $"{versionStringPart}{currentVersionIntegerPart}";
+                PakVersionNumber = $"{versionStringPart}{currentVersionIntegerPart:00}";
             }
 
             private string GetStringWithoutNumber(string text)
