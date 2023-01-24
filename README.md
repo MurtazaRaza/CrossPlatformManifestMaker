@@ -4,7 +4,7 @@ This console application is useful for generating platform specific BuildManifes
 
 Compile the code using Rider or Visual studio or any .Net compiler. 
 
-How to generate manifest:
+How to generate manifest: (inside command prompt or terminal where exe file is kept)
 
 [exe file name].exe "[path to previous manifest file or null]"
 "[directory where pak files are stored]"
