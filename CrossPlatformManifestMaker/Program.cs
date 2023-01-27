@@ -51,6 +51,7 @@ namespace CrossPlatformManifestMaker
             }
             
             BuildManifest buildManifest = new BuildManifest();
+            FileUtils.SetVersionLogFilePath($"{paksPath}/_VersionUpdateLog-{platform}.txt");
 
             if (IsFirstManifest)
             {

@@ -7,6 +7,9 @@ namespace CrossPlatformManifestMaker
 {
     public static class FileUtils
     {
+
+        private static string LogFilePath;
+        
         public static string[] GetAllLinesInFile(string path)
         {
             string[] allLinesInFile = File.ReadAllLines(path);
@@ -22,10 +25,9 @@ namespace CrossPlatformManifestMaker
                 File.Delete(filePathWithName);
             }
 
-            using (StreamWriter sw = File.CreateText(filePathWithName))
-            {
-                sw.Write(stringToWrite);
-            }
+            using StreamWriter sw = File.CreateText(filePathWithName);
+            sw.Write(stringToWrite);
+            sw.Close();
         }
         
         public static List<FileInfo> GetAllFilesInFolderWith(string path, string stringToInclude, string notIncluding = "-1")
@@ -46,6 +48,30 @@ namespace CrossPlatformManifestMaker
             
             List<FileInfo> listOfFiles = files.Where(file => !file.Name.Contains(notIncluding)).ToList();
             return listOfFiles;
+        }
+
+        public static void SetVersionLogFilePath(string path)
+        {
+            LogFilePath = path;
+            
+            // Check if file already exists. If yes, delete it.     
+            if (Exists(LogFilePath))
+            {
+                File.Delete(LogFilePath);
+            }
+        }
+
+        public static void AddLineToVersionLogFile(string line)
+        {
+            if (string.IsNullOrEmpty(LogFilePath))
+            {
+                Console.WriteLine("Log File Path Not Specified");
+                return;
+            }
+            
+            using StreamWriter sw = File.AppendText(LogFilePath);
+            sw.Write($"{line}\n");
+            sw.Close();
         }
 
         public static bool Exists(string filePath)

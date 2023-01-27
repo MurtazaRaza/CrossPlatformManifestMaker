@@ -114,6 +114,8 @@ namespace CrossPlatformManifestMaker
                     manifestPakDetail.ChunkId = GetChunkIdFromPakName(pakFile.Name);
                     manifestPakDetail.PathRelativeToManifest =
                         GetPathRelativeToManifest(pakFile.Name, qualityType, platformName);
+                    
+                    FileUtils.AddLineToVersionLogFile($"{manifestPakDetail.PakChunkName}\t{manifestPakDetail.PakVersionNumber}->{manifestPakDetail.PakVersionNumber}");
 
                     ManifestPakDetails.Add(manifestPakDetail);
                     continue;
@@ -178,6 +180,7 @@ namespace CrossPlatformManifestMaker
 
         public void UpdateVersionsOfPaks(List<string> pakNamesToUpdate)
         {
+            FileUtils.AddLineToVersionLogFile("Updates:");
             foreach (var pakNameToUpdate in pakNamesToUpdate)
             {
                 ManifestPakDetail manifestPakDetail =
@@ -235,7 +238,10 @@ namespace CrossPlatformManifestMaker
                 currentVersionIntegerPart++;
                 string versionStringPart = GetStringWithoutNumber(PakVersionNumber);
 
+                string versionNumberBeforeUpdate = PakVersionNumber;
+
                 PakVersionNumber = $"{versionStringPart}{currentVersionIntegerPart:00}";
+                FileUtils.AddLineToVersionLogFile($"{PakChunkName}\t{versionNumberBeforeUpdate}->{PakVersionNumber}");
             }
 
             private string GetStringWithoutNumber(string text)
