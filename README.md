@@ -1,12 +1,12 @@
 Cross platform manifest maker for Unreal's ChunkDownloader plugin to read.
 
-This console application is useful for generating platform specific BuildManifest file that can be part of your build pipeline. 
+This console application is useful for generating platform specific BuildManifest file that can be part of a build pipeline. 
 
 Compile the code using Rider or Visual studio or any .Net compiler. 
 
-How to generate manifest: (inside command prompt or terminal where exe file is kept)
+How to generate manifest: (inside command prompt or terminal where executable file is kept)
 
-[exe file name].exe "[path to previous manifest file or null]"
+[exe file name] "[path to previous manifest file or null]"
 "[directory where pak files are stored]"
 "[Build Version]"
 "[Platform]"
