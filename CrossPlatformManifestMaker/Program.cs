@@ -72,6 +72,9 @@ namespace CrossPlatformManifestMaker
                 buildManifest.ReconcileWithCurrentPaks(pakFiles, platform, quality);
 
                 buildManifest.UpdateVersionsOfPaks(pakNamesToUpdate);
+                
+                buildManifest.SetNumberOfPaks(pakFiles.Count);
+                buildManifest.SetBuildId(buildVersionNumber);
 
                 FileUtils.WriteStringToFile(buildManifest.SerializeObject(platform, quality),
                     $"{paksPath}/BuildManifest-{platform}.txt");
