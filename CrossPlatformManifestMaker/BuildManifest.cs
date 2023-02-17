@@ -31,6 +31,8 @@ namespace CrossPlatformManifestMaker
             stringBuilder.Append("$NUM_ENTRIES = ").Append(NumberOfPaks.ToString()).AppendLine();
             stringBuilder.Append("$BUILD_ID = ").Append(BuildId).AppendLine();
 
+            ManifestPakDetails.OrderBy(x => x.ChunkId);
+
             foreach (var manifestPakDetail in ManifestPakDetails)
             {
                 stringBuilder.Append(manifestPakDetail.PakChunkName).Append("\t")
@@ -99,6 +101,16 @@ namespace CrossPlatformManifestMaker
             }
 
             return manifestPakDetail;
+        }
+
+        public void SetNumberOfPaks(int numberOfPaks)
+        {
+            NumberOfPaks = numberOfPaks;
+        }
+
+        public void SetBuildId(string buildId)
+        {
+            BuildId = buildId;
         }
 
         public void ReconcileWithCurrentPaks(List<FileInfo> pakFiles, string platformName, string qualityType)

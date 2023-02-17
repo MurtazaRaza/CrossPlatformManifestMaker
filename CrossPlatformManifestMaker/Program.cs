@@ -57,6 +57,8 @@ namespace CrossPlatformManifestMaker
             {
                 var pakFiles= FileUtils.GetAllFilesInFolderWith(paksPath, "*.pak", "pakchunk0");
                 buildManifest.ReconcileWithCurrentPaks(pakFiles, platform, quality);
+                buildManifest.SetNumberOfPaks(pakFiles.Count);
+                buildManifest.SetBuildId(buildVersionNumber);
 
                 FileUtils.WriteStringToFile(buildManifest.SerializeObject(platform, quality),
                     $"{paksPath}/BuildManifest-{platform}.txt");
