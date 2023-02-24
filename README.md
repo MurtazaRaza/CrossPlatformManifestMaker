@@ -15,10 +15,10 @@ How to generate manifest: (inside command prompt or terminal where executable fi
 "[pak file name that has been updated]"
 [followed by names of however many pak files that were updated] 
 
-For running on mac dotnetcore needs to be installed. 
+For running on mac, dotnetcore needs to be installed. 
 To run prefix dotnet followed by .dll path followed by the other parameters listed above.
 [dotnet][dll file name] "[path to previous manifest file or null]"
 ...
 ...
 
-The code was made keeping in mind specific requirements but it can very easily be editted to let's say not include quality settings.
+The code was made keeping in mind specific requirements, but, it can very easily be editted to, let's say, not include quality settings.
