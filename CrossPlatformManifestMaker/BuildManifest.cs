@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using Microsoft.VisualBasic.CompilerServices;
 
 namespace CrossPlatformManifestMaker
 {
@@ -11,7 +12,7 @@ namespace CrossPlatformManifestMaker
     {
         private int NumberOfPaks;
         private string BuildId;
-        private List<ManifestPakDetail> ManifestPakDetails = new List<ManifestPakDetail>();
+        private Dictionary<string, ManifestPakDetail> manifestPakDetailsDictionary = new Dictionary<string, ManifestPakDetail>();
 
         private static readonly string DEFAULT_VERSION_STRING = "ver01";
         private readonly List<string> ESCAPE_CHARACTERS_LIST = new List<string>()
@@ -31,14 +32,14 @@ namespace CrossPlatformManifestMaker
             stringBuilder.Append("$NUM_ENTRIES = ").Append(NumberOfPaks.ToString()).AppendLine();
             stringBuilder.Append("$BUILD_ID = ").Append(BuildId).AppendLine();
 
-            ManifestPakDetails.OrderBy(x => x.ChunkId);
+            manifestPakDetailsDictionary.OrderBy(x => x.Key);
 
-            foreach (var manifestPakDetail in ManifestPakDetails)
+            foreach (var (key, value) in manifestPakDetailsDictionary)
             {
-                stringBuilder.Append(manifestPakDetail.PakChunkName).Append("\t")
-                    .Append(manifestPakDetail.PakSizeInBytes).Append("\t")
-                    .Append(manifestPakDetail.PakVersionNumber).Append("\t").Append(manifestPakDetail.ChunkId)
-                    .Append("\t").Append(manifestPakDetail.PathRelativeToManifest).AppendLine();
+                stringBuilder.Append(value.PakChunkName).Append("\t")
+                    .Append(value.PakSizeInBytes).Append("\t")
+                    .Append(value.PakVersionNumber).Append("\t").Append(value.ChunkId)
+                    .Append("\t").Append(value.PathRelativeToManifest).Append("\n");
             }
 
             return stringBuilder.ToString();
@@ -76,7 +77,7 @@ namespace CrossPlatformManifestMaker
             for (int i = 2; i < buildManifestLines.Length; i++)
             {
                 ManifestPakDetail manifestPakDetail = ParseManifestPakDetailFromLine(buildManifestLines[i]);
-                ManifestPakDetails.Add(manifestPakDetail);
+                manifestPakDetailsDictionary.Add(manifestPakDetail.PakChunkName, manifestPakDetail);
             }
         }
 
@@ -115,9 +116,26 @@ namespace CrossPlatformManifestMaker
 
         public void ReconcileWithCurrentPaks(List<FileInfo> pakFiles, string platformName, string qualityType)
         {
+            // This loops through all the paks read from previous manifest (if any) and removes all the paks from the list that 
+            // are not found in the new pak files folder
+            foreach (var (key, value) in manifestPakDetailsDictionary)
+            {
+                if (!pakFiles.Exists(x => x.Name.Equals(key)))
+                    manifestPakDetailsDictionary.Remove(key);
+            }
+
             foreach (var pakFile in pakFiles)
             {
-                if (!ManifestPakDetails.Exists(x => x.PakChunkName.Equals(pakFile.Name)))
+                // This loops through all the pak files and if any pak is found that exists in the new pak folder that was not 
+                // found in the previous one add it
+                
+                if (manifestPakDetailsDictionary.TryGetValue(pakFile.Name, out var manifestPakDetailFromList))
+                {
+                    // Because we might not get changed list from caller - temporary check added here to re get size in case 
+                    // size was changed // TODO Remove later!
+                    manifestPakDetailFromList.PakSizeInBytes = pakFile.Length.ToString();
+                }
+                else
                 {
                     ManifestPakDetail manifestPakDetail = new ManifestPakDetail();
                     manifestPakDetail.PakChunkName = pakFile.Name;
@@ -126,11 +144,11 @@ namespace CrossPlatformManifestMaker
                     manifestPakDetail.ChunkId = GetChunkIdFromPakName(pakFile.Name);
                     manifestPakDetail.PathRelativeToManifest =
                         GetPathRelativeToManifest(pakFile.Name, qualityType, platformName);
-                    
-                    FileUtils.AddLineToVersionLogFile($"{manifestPakDetail.PakChunkName}\t{manifestPakDetail.PakVersionNumber}->{manifestPakDetail.PakVersionNumber}");
 
-                    ManifestPakDetails.Add(manifestPakDetail);
-                    continue;
+                    FileUtils.AddLineToVersionLogFile(
+                        $"{manifestPakDetail.PakChunkName}\t{manifestPakDetail.PakVersionNumber}->{manifestPakDetail.PakVersionNumber}");
+
+                    manifestPakDetailsDictionary.Add(manifestPakDetail.PakChunkName, manifestPakDetail);
                 }
             }
         }
@@ -190,46 +208,55 @@ namespace CrossPlatformManifestMaker
             return pakFilePathRelative;
         }
 
-        public void UpdateVersionsOfPaks(List<string> pakNamesToUpdate)
+        public void UpdateVersionsOfPaks(HashSet<string> recievedPakNamesToUpdate, bool updateAll = false)
         {
-            FileUtils.AddLineToVersionLogFile("Updates:");
-            foreach (var pakNameToUpdate in pakNamesToUpdate)
+            HashSet<string> pakNamesToUpdate = new HashSet<string>(recievedPakNamesToUpdate);
+            // case added temporarily to make devops work easier! TODO Remove later!
+            if (updateAll)
             {
-                ManifestPakDetail manifestPakDetail =
-                    ManifestPakDetails.FirstOrDefault(x => x.PakChunkName.Equals(pakNameToUpdate));
-
-                if (manifestPakDetail == null)
-                    continue;
-
-                manifestPakDetail.IncrementPakVersionNumber();
-
-                if (!manifestPakDetail.PakChunkName.Contains("_s") &&
-                    !manifestPakDetail.PakChunkName.Contains("optional"))
-                    continue;
-
-
-                // TODO get all parent paks. Parent pak will have the same name as the pak but no _s or optional?
-                // also check whether that is the pak that was updated so recursive call is not made
-                List<ManifestPakDetail> paksWithSameId =
-                    ManifestPakDetails.Where(x => x.ChunkId == manifestPakDetail.ChunkId).ToList();
-
-                for (var index = paksWithSameId.Count - 1; index >= 0; index--)
+                foreach (var manifestPakDetail in manifestPakDetailsDictionary)
                 {
-                    var pak = paksWithSameId[index];
-                    // This already will be updated so no need to do it here
-                    if (pakNamesToUpdate.Contains(pak.PakChunkName))
-                        continue;
-
-                    if (!pak.PakChunkName.Contains("_s") && !pak.PakChunkName.Contains("optional"))
+                    pakNamesToUpdate.Add(manifestPakDetail.Key);
+                }
+            }
+            else
+            {
+                foreach (var recievedPakNameToUpdate in recievedPakNamesToUpdate)
+                {
+                    if (recievedPakNameToUpdate.Contains("_s") || recievedPakNameToUpdate.Contains("optional"))
                     {
-                        pak.IncrementPakVersionNumber();
+                        if (!manifestPakDetailsDictionary.TryGetValue(recievedPakNameToUpdate, out ManifestPakDetail manifestPakDetail))
+                            continue;
+
+                        var paksWithSameId =
+                            manifestPakDetailsDictionary.Where(x => x.Value.ChunkId == manifestPakDetail.ChunkId);
+
+                        foreach (var paksKeyValue in paksWithSameId)
+                        {
+                            if (!recievedPakNameToUpdate.Contains("_s") &&
+                                !recievedPakNameToUpdate.Contains("optional"))
+                            {
+                                pakNamesToUpdate.Add(paksKeyValue.Key);
+                            }
+                        }
                     }
                 }
+                FileUtils.AddLineToVersionLogFile("Updates:");
+            }
 
+            UpdateVersionOfPaksInternal(pakNamesToUpdate.ToList());
+
+        }
+
+        private void UpdateVersionOfPaksInternal(List<string> pakNamesToUpdate)
+        {
+            foreach (var pakName in pakNamesToUpdate)
+            {
+                if(manifestPakDetailsDictionary.TryGetValue(pakName, out ManifestPakDetail manifestPakDetail ))
+                    manifestPakDetail.IncrementPakVersionNumber();
             }
         }
 
-        // TODO add log to a file with all the changes when changing versions
         private class ManifestPakDetail
         {
             public string PakChunkName;

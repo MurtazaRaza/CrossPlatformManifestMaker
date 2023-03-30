@@ -6,8 +6,8 @@ namespace CrossPlatformManifestMaker
     class Program
     {
 
-        private static bool IsFirstManifest = false;
-        
+        private static bool isFirstManifest = false;
+
         /// <summary>
         /// Generate Manifest through commandline
         /// </summary>
@@ -17,7 +17,8 @@ namespace CrossPlatformManifestMaker
         /// arg 2 : Build Version Number (build content id) [eg: v3.2.0]
         /// arg 3 : Platform [Windows, Android, IOS, TvOS]
         /// arg 4 : Quality [high, medium, low]
-        /// arg 5+ : List of all changed paks
+        /// arg 5 : Should Update Versions of all files [true, false]
+        /// arg 6+ : List of all changed paks
         /// </param>
         static void Main(string[] args)
         {
@@ -26,59 +27,56 @@ namespace CrossPlatformManifestMaker
                 Console.WriteLine("ERROR: Need at least 4 arguments");
                 return;
             }
-            
-            string previousReleaseBuildManifestPath = args[0]; // TODO check validity here only and throw error if incorrect or inaccessible
+
+            string previousReleaseBuildManifestPath = args[0];
             if (!FileUtils.Exists(previousReleaseBuildManifestPath))
             {
                 Console.WriteLine("Previous Manifest Not Found, comparisions will be skipped");
-                IsFirstManifest = true;
+                isFirstManifest = true;
             }
-            string paksPath = args[1]; // TODO check validity here only and throw error if incorrect or inaccessible
+
+            string paksPath = args[1];
             string buildVersionNumber = args[2];
-            
+
             string platform = args[3];
             if (!CheckPlatformSupport(platform))
                 return;
-            
+
             string quality = args[4];
             if (!CheckQualitySupport(quality))
                 return;
 
-            List<string> pakNamesToUpdate = new List<string>();
-            for (int i = 5; i < args.Length; i++)
+            string shouldUpdateAllVersionsString = args[5];
+            if (!bool.TryParse(args[5], out bool shouldUpdateAllVersions))
+            {
+                Console.WriteLine("Error parsing Should Update All Versions arg");
+                return;
+            }
+
+            HashSet<string> pakNamesToUpdate = new HashSet<string>();
+            for (int i = 6; i < args.Length; i++)
             {
                 pakNamesToUpdate.Add(args[i]);
             }
-            
+
             BuildManifest buildManifest = new BuildManifest();
             FileUtils.SetVersionLogFilePath($"{paksPath}/_VersionUpdateLog-{platform}.txt");
-
-            if (IsFirstManifest)
-            {
-                var pakFiles= FileUtils.GetAllFilesInFolderWith(paksPath, "*.pak", "pakchunk0");
-                buildManifest.ReconcileWithCurrentPaks(pakFiles, platform, quality);
-                buildManifest.SetNumberOfPaks(pakFiles.Count);
-                buildManifest.SetBuildId(buildVersionNumber);
-
-                FileUtils.WriteStringToFile(buildManifest.SerializeObject(platform, quality),
-                    $"{paksPath}/BuildManifest-{platform}.txt");
-            }
-            else
+            
+            if (!isFirstManifest)
             {
                 string[] allLinesInManifest = FileUtils.GetAllLinesInFile(previousReleaseBuildManifestPath);
                 buildManifest.DeserializeBuildManifestFileLines(allLinesInManifest);
-                
-                var pakFiles= FileUtils.GetAllFilesInFolderWith(paksPath, "*.pak", "pakchunk0");
-                buildManifest.ReconcileWithCurrentPaks(pakFiles, platform, quality);
-
-                buildManifest.UpdateVersionsOfPaks(pakNamesToUpdate);
-                
-                buildManifest.SetNumberOfPaks(pakFiles.Count);
-                buildManifest.SetBuildId(buildVersionNumber);
-
-                FileUtils.WriteStringToFile(buildManifest.SerializeObject(platform, quality),
-                    $"{paksPath}/BuildManifest-{platform}.txt");
             }
+            var pakFiles = FileUtils.GetAllFilesInFolderWith(paksPath, "*.pak", "pakchunk0");
+            buildManifest.ReconcileWithCurrentPaks(pakFiles, platform, quality);
+            if (!isFirstManifest)
+                buildManifest.UpdateVersionsOfPaks(pakNamesToUpdate, shouldUpdateAllVersions);
+            buildManifest.SetNumberOfPaks(pakFiles.Count);
+            buildManifest.SetBuildId(buildVersionNumber);
+
+            FileUtils.WriteStringToFile(buildManifest.SerializeObject(platform, quality),
+                $"{paksPath}/BuildManifest-{platform}.txt");
+
         }
 
         private static bool CheckPlatformSupport(string platform)
