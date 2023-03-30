@@ -11,9 +11,20 @@ How to generate manifest: (inside command prompt or terminal where executable fi
 "[Build Version]"
 "[Platform]"
 "[quality]"
+"[boolean to upload all or not]"
 "[pak file name that has been updated]"
 "[pak file name that has been updated]"
 [followed by names of however many pak files that were updated] 
+
+eg:
+[exe file name] "C:\Users\BuildManifest-Android.txt"
+"C:\Users\Android\high"
+"v1.0.0"
+"Android"
+"high"
+"false"
+"pakchunk1001_s1-Android_ASTC.pak"
+"pakchunk1200_s4-Android_ASTC.pak"
 
 For running on mac, dotnetcore needs to be installed. 
 To run prefix dotnet followed by .dll path followed by the other parameters listed above.
