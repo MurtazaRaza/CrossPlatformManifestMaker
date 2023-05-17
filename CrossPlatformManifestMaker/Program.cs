@@ -15,7 +15,7 @@ namespace CrossPlatformManifestMaker
         /// arg 0 : Path of last manifest file (or null)
         /// arg 1 : Path where all new paks are [eg: C:/Users/Paks/]
         /// arg 2 : Build Version Number (build content id) [eg: v3.2.0]
-        /// arg 3 : Platform [Windows, Android, IOS, TvOS]
+        /// arg 3 : Platform [Windows, Android, IOS, TvOS, Mac]
         /// arg 4 : Quality [high, medium, low]
         /// arg 5 : Should Update Versions of all files [true, false]
         /// arg 6+ : List of all changed paks
@@ -82,9 +82,9 @@ namespace CrossPlatformManifestMaker
         private static bool CheckPlatformSupport(string platform)
         {
             if (!platform.Equals("Windows") && !platform.Equals("Android") && !platform.Equals("IOS") &&
-                !platform.Equals("TvOS"))
+                !platform.Equals("TvOS") && !platform.Equals("Mac"))
             {
-                Console.WriteLine("ERROR: Unsupported platform entered; only supports Windows, Android, IOS, and TvOS strings");
+                Console.WriteLine("ERROR: Unsupported platform entered; only supports Windows, Android, IOS, Mac, and TvOS strings");
                 return false;
             }
 
