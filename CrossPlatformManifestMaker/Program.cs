@@ -17,8 +17,8 @@ namespace CrossPlatformManifestMaker
         /// arg 2 : Build Version Number (build content id) [eg: v3.2.0]
         /// arg 3 : Platform [Windows, Android, IOS, TvOS, Mac]
         /// arg 4 : Quality [high, medium, low]
-        /// arg 5 : Should Update Versions of all files [true, false]
-        /// arg 6+ : List of all changed paks
+        /// arg 5 : Should Update Versions of all files [All, Patch, Selective]
+        /// arg 6+ : List of all changed paks in case of selective
         /// </param>
         static void Main(string[] args)
         {
@@ -47,7 +47,8 @@ namespace CrossPlatformManifestMaker
                 return;
 
             string shouldUpdateAllVersionsString = args[5];
-            if (!bool.TryParse(args[5], out bool shouldUpdateAllVersions))
+
+            if (!Enum.TryParse(shouldUpdateAllVersionsString, out UpdateType updateType))
             {
                 Console.WriteLine("Error parsing Should Update All Versions arg");
                 return;
@@ -67,10 +68,10 @@ namespace CrossPlatformManifestMaker
                 string[] allLinesInManifest = FileUtils.GetAllLinesInFile(previousReleaseBuildManifestPath);
                 buildManifest.DeserializeBuildManifestFileLines(allLinesInManifest);
             }
-            var pakFiles = FileUtils.GetAllFilesInFolderWith(paksPath, "*.pak", "pakchunk0");
+            var pakFiles = FileUtils.GetAllFilesInFolderWith(paksPath, "*.pak", "pakchunk0", "_P");
             buildManifest.ReconcileWithCurrentPaks(pakFiles, platform, quality);
             if (!isFirstManifest)
-                buildManifest.UpdateVersionsOfPaks(pakNamesToUpdate, shouldUpdateAllVersions);
+                buildManifest.UpdateVersionsOfPaks(pakNamesToUpdate, updateType);
             buildManifest.SetNumberOfPaks(pakFiles.Count);
             buildManifest.SetBuildId(buildVersionNumber);
 

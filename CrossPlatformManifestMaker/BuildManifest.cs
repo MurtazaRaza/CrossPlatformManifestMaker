@@ -208,44 +208,69 @@ namespace CrossPlatformManifestMaker
             return pakFilePathRelative;
         }
 
-        public void UpdateVersionsOfPaks(HashSet<string> recievedPakNamesToUpdate, bool updateAll = false)
+        public void UpdateVersionsOfPaks(HashSet<string> recievedPakNamesToUpdate, UpdateType updateType = UpdateType.All)
         {
             HashSet<string> pakNamesToUpdate = new HashSet<string>(recievedPakNamesToUpdate);
-            // case added temporarily to make devops work easier! TODO Remove later!
-            if (updateAll)
+            
+            if (updateType == UpdateType.All)
             {
-                foreach (var manifestPakDetail in manifestPakDetailsDictionary)
-                {
-                    pakNamesToUpdate.Add(manifestPakDetail.Key);
-                }
+                UpdateAllPaks(ref pakNamesToUpdate);
+            }
+            else if (updateType == UpdateType.Patch)
+            {
+                UpdatePatchPaks(ref pakNamesToUpdate);
             }
             else
             {
-                foreach (var recievedPakNameToUpdate in recievedPakNamesToUpdate)
-                {
-                    if (recievedPakNameToUpdate.Contains("_s") || recievedPakNameToUpdate.Contains("optional"))
-                    {
-                        if (!manifestPakDetailsDictionary.TryGetValue(recievedPakNameToUpdate, out ManifestPakDetail manifestPakDetail))
-                            continue;
-
-                        var paksWithSameId =
-                            manifestPakDetailsDictionary.Where(x => x.Value.ChunkId == manifestPakDetail.ChunkId);
-
-                        foreach (var paksKeyValue in paksWithSameId)
-                        {
-                            if (!recievedPakNameToUpdate.Contains("_s") &&
-                                !recievedPakNameToUpdate.Contains("optional"))
-                            {
-                                pakNamesToUpdate.Add(paksKeyValue.Key);
-                            }
-                        }
-                    }
-                }
-                FileUtils.AddLineToVersionLogFile("Updates:");
+                UpdateSelectivePaks(recievedPakNamesToUpdate, ref pakNamesToUpdate);
             }
-
+            
+            FileUtils.AddLineToVersionLogFile("Updates:");
             UpdateVersionOfPaksInternal(pakNamesToUpdate.ToList());
 
+        }
+
+        private void UpdateAllPaks(ref HashSet<string> pakNamesToUpdate)
+        {
+            foreach (var manifestPakDetail in manifestPakDetailsDictionary)
+            {
+                pakNamesToUpdate.Add(manifestPakDetail.Key);
+            }
+        }
+
+        private void UpdatePatchPaks(ref HashSet<string> pakNamesToUpdate)
+        {
+            foreach (var manifestPakDetail in manifestPakDetailsDictionary)
+            {
+                if (manifestPakDetail.Key.Contains("_P") || manifestPakDetail.Key.Contains("_p"))
+                    pakNamesToUpdate.Add(manifestPakDetail.Key);
+            }
+        }
+
+        private void UpdateSelectivePaks(HashSet<string> recievedPakNamesToUpdate, ref HashSet<string> pakNamesToUpdate)
+        {
+            foreach (var recievedPakNameToUpdate in recievedPakNamesToUpdate)
+            {
+                if (!recievedPakNameToUpdate.Contains("_s") && !recievedPakNameToUpdate.Contains("optional")) 
+                    continue;
+                
+                if (!manifestPakDetailsDictionary.TryGetValue(recievedPakNameToUpdate,
+                        out ManifestPakDetail manifestPakDetail))
+                    continue;
+
+                var paksWithSameId =
+                    manifestPakDetailsDictionary.Where(x => x.Value.ChunkId == manifestPakDetail.ChunkId);
+
+                foreach (var paksKeyValue in paksWithSameId)
+                {
+                    if (!recievedPakNameToUpdate.Contains("_s") &&
+                        !recievedPakNameToUpdate.Contains("optional") && !recievedPakNamesToUpdate.Contains("_P")
+                        && !recievedPakNamesToUpdate.Contains("_p"))
+                    {
+                        pakNamesToUpdate.Add(paksKeyValue.Key);
+                    }
+                }
+            }
         }
 
         private void UpdateVersionOfPaksInternal(List<string> pakNamesToUpdate)
@@ -295,6 +320,13 @@ namespace CrossPlatformManifestMaker
                 return isSuccessful ? ver : -1;
             }
         }
+    }
+
+    public enum UpdateType
+    {
+        All,
+        Patch,
+        Selective
     }
 
 }

@@ -11,7 +11,7 @@ How to generate manifest: (inside command prompt or terminal where executable fi
 "[Build Version]"
 "[Platform]"
 "[quality]"
-"[boolean to upload all or not]"
+"[Update type - All/Patch/Selective]"
 "[pak file name that has been updated]"
 "[pak file name that has been updated]"
 [followed by names of however many pak files that were updated] 
@@ -22,7 +22,7 @@ eg:
 "v1.0.0"
 "Android"
 "high"
-"false"
+"Selective"
 "pakchunk1001_s1-Android_ASTC.pak"
 "pakchunk1200_s4-Android_ASTC.pak"
 

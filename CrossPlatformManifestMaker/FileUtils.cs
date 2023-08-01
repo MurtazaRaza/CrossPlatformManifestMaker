@@ -30,10 +30,10 @@ namespace CrossPlatformManifestMaker
             sw.Close();
         }
         
-        public static List<FileInfo> GetAllFilesInFolderWith(string path, string stringToInclude, string notIncluding = "-1")
+        public static List<FileInfo> GetAllFilesInFolderWith(string path, string stringToInclude, string notIncluding = "-1", string exceptionToNotIncludeRule = "-1")
         {
             
-            DirectoryInfo d = new DirectoryInfo(path); //Assuming Test is your Folder
+            DirectoryInfo d = new DirectoryInfo(path);
 
             FileInfo[] files;
             try
@@ -46,7 +46,7 @@ namespace CrossPlatformManifestMaker
                 throw;
             }
             
-            List<FileInfo> listOfFiles = files.Where(file => !file.Name.Contains(notIncluding)).ToList();
+            List<FileInfo> listOfFiles = files.Where(file => (!file.Name.Contains(notIncluding) || file.Name.Contains(exceptionToNotIncludeRule))).ToList();
             return listOfFiles;
         }
 
