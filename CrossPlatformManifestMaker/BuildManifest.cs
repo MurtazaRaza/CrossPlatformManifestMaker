@@ -28,11 +28,11 @@ namespace CrossPlatformManifestMaker
         /// <returns></returns>
         public string SerializeObject(string platform, string quality)
         {
+            ReorderInAscending();
+            
             StringBuilder stringBuilder = new StringBuilder();
             stringBuilder.Append("$NUM_ENTRIES = ").Append(NumberOfPaks.ToString()).AppendLine();
             stringBuilder.Append("$BUILD_ID = ").Append(BuildId).AppendLine();
-
-            manifestPakDetailsDictionary.OrderBy(x => x.Key);
 
             foreach (var (key, value) in manifestPakDetailsDictionary)
             {
@@ -43,6 +43,11 @@ namespace CrossPlatformManifestMaker
             }
 
             return stringBuilder.ToString();
+        }
+
+        private void ReorderInAscending()
+        {
+            manifestPakDetailsDictionary = manifestPakDetailsDictionary.OrderBy(x => x.Key).ToDictionary(x => x.Key, x => x.Value);
         }
 
         /// <summary>
