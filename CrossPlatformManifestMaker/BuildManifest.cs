@@ -13,6 +13,7 @@ namespace CrossPlatformManifestMaker
         private int NumberOfPaks;
         private string BuildId;
         private Dictionary<string, ManifestPakDetail> manifestPakDetailsDictionary = new Dictionary<string, ManifestPakDetail>();
+        private UpdateType UpdateType;
 
         private static readonly string DEFAULT_VERSION_STRING = "ver01";
         private readonly List<string> ESCAPE_CHARACTERS_LIST = new List<string>()
@@ -48,6 +49,13 @@ namespace CrossPlatformManifestMaker
         private void ReorderInAscending()
         {
             manifestPakDetailsDictionary = manifestPakDetailsDictionary.OrderBy(x => x.Key).ToDictionary(x => x.Key, x => x.Value);
+            
+            if (UpdateType == UpdateType.Patch)
+            {
+                manifestPakDetailsDictionary = manifestPakDetailsDictionary.OrderBy(x => !x.Key
+                        .ToLower().Contains("_p"))
+                    .ToDictionary(x => x.Key, x => x.Value);
+            }
         }
 
         /// <summary>
@@ -162,8 +170,36 @@ namespace CrossPlatformManifestMaker
         {
             string toBeSearched = "pakchunk";
             string subStringedIntermediate = pakFileName.Substring(pakFileName.IndexOf(toBeSearched, StringComparison.Ordinal) + toBeSearched.Length);
-            string pakFileChunkId = GetUntilOrEmpty(subStringedIntermediate, ESCAPE_CHARACTERS_LIST);
-            pakFileChunkId = GetChunkIdWithoutUnnecessaryText(pakFileChunkId);
+            string pakFileChunkId;
+            if (string.IsNullOrWhiteSpace(subStringedIntermediate)) pakFileChunkId = string.Empty;
+            else
+            {
+                int charLocation = -1;
+
+                foreach (var stopAt in ESCAPE_CHARACTERS_LIST)
+                {
+                    int currentEscapeCharacterIndex = subStringedIntermediate.IndexOf(stopAt, StringComparison.Ordinal);
+
+                    if (currentEscapeCharacterIndex == 0) continue;
+                    
+                    if (charLocation == -1)
+                    {
+                        charLocation = currentEscapeCharacterIndex;
+                        continue;
+                    }
+
+                    if (charLocation > currentEscapeCharacterIndex)
+                    {
+                        charLocation = currentEscapeCharacterIndex;
+                        continue;
+                    }
+                }
+
+                pakFileChunkId = charLocation > -1 ? subStringedIntermediate.Substring(0, charLocation) : string.Empty;
+            }
+
+            string numberOnly = Regex.Replace(pakFileChunkId, "[^0-9.]", "");
+            pakFileChunkId = numberOnly;
 
             return pakFileChunkId;
         }
@@ -215,6 +251,8 @@ namespace CrossPlatformManifestMaker
 
         public void UpdateVersionsOfPaks(HashSet<string> recievedPakNamesToUpdate, UpdateType updateType = UpdateType.All)
         {
+            UpdateType = updateType;
+            
             HashSet<string> pakNamesToUpdate = new HashSet<string>(recievedPakNamesToUpdate);
             
             if (updateType == UpdateType.All)

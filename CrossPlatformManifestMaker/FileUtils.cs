@@ -46,7 +46,7 @@ namespace CrossPlatformManifestMaker
                 throw;
             }
             
-            List<FileInfo> listOfFiles = files.Where(file => (!file.Name.Contains(notIncluding) || file.Name.Contains(exceptionToNotIncludeRule))).ToList();
+            List<FileInfo> listOfFiles = files.Where(file => (!file.Name.ToLower().Contains(notIncluding) || file.Name.ToLower().Contains(exceptionToNotIncludeRule))).ToList();
             return listOfFiles;
         }
 

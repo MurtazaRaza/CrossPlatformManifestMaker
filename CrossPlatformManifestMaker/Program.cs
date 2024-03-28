@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 
 namespace CrossPlatformManifestMaker
 {
@@ -15,7 +17,7 @@ namespace CrossPlatformManifestMaker
         /// arg 0 : Path of last manifest file (or null)
         /// arg 1 : Path where all new paks are [eg: C:/Users/Paks/]
         /// arg 2 : Build Version Number (build content id) [eg: v3.2.0]
-        /// arg 3 : Platform [Windows, Android, IOS, TvOS, Mac]
+        /// arg 3 : Platform [Windows, Android, IOS, TVOS, Mac]
         /// arg 4 : Quality [high, medium, low]
         /// arg 5 : Should Update Versions of all files [All, Patch, Selective]
         /// arg 6+ : List of all changed paks in case of selective
@@ -31,7 +33,7 @@ namespace CrossPlatformManifestMaker
             string previousReleaseBuildManifestPath = args[0];
             if (!FileUtils.Exists(previousReleaseBuildManifestPath))
             {
-                Console.WriteLine("Previous Manifest Not Found, comparisions will be skipped");
+                Console.WriteLine("Previous Manifest Not Found, comparisons will be skipped");
                 isFirstManifest = true;
             }
 
@@ -68,7 +70,7 @@ namespace CrossPlatformManifestMaker
                 string[] allLinesInManifest = FileUtils.GetAllLinesInFile(previousReleaseBuildManifestPath);
                 buildManifest.DeserializeBuildManifestFileLines(allLinesInManifest);
             }
-            var pakFiles = FileUtils.GetAllFilesInFolderWith(paksPath, "*.pak", "pakchunk0", "_P");
+            var pakFiles = FileUtils.GetAllFilesInFolderWith(paksPath, "*.pak", "pakchunk0", "_p");
             buildManifest.ReconcileWithCurrentPaks(pakFiles, platform, quality);
             if (!isFirstManifest)
                 buildManifest.UpdateVersionsOfPaks(pakNamesToUpdate, updateType);
@@ -83,9 +85,9 @@ namespace CrossPlatformManifestMaker
         private static bool CheckPlatformSupport(string platform)
         {
             if (!platform.Equals("Windows") && !platform.Equals("Android") && !platform.Equals("IOS") &&
-                !platform.Equals("TvOS") && !platform.Equals("Mac"))
+                !platform.Equals("TVOS") && !platform.Equals("Mac") && !platform.Equals("WindowsLite"))
             {
-                Console.WriteLine("ERROR: Unsupported platform entered; only supports Windows, Android, IOS, Mac, and TvOS strings");
+                Console.WriteLine("ERROR: Unsupported platform entered; only supports Windows, WindowsLite, Android, IOS, Mac, and TvOS strings");
                 return false;
             }
 
